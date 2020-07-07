@@ -1,0 +1,21 @@
+FROM aspnet:3.1-vsdbg AS base
+WORKDIR /src
+EXPOSE 80
+
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
+WORKDIR /src
+COPY ./src .
+
+RUN dotnet build './Pacco.Services.Operations.Api/Pacco.Services.Operations.Api.csproj' -c Debug -o /out
+FROM build AS publish
+RUN dotnet publish Pacco.Services.Operations.Api/Pacco.Services.Operations.Api.csproj -c Debug -o /out
+
+# Building final image used in running container
+FROM base AS final
+WORKDIR /src
+COPY --from=publish /out .
+
+ENV ASPNETCORE_URLS http://*:80
+ENV ASPNETCORE_ENVIRONMENT k8s
+
+ENTRYPOINT ["dotnet", "Pacco.Services.Operations.Api.dll"]
